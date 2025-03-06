@@ -104,28 +104,65 @@ app.MapHealthChecks("/health");
 // Create database and seed initial admin user if it doesn't exist
 using (var scope = app.Services.CreateScope())
 {
-    var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
-    var userRepository = services.GetRequiredService<IUserRepository>();
-    var authService = services.GetRequiredService<AuthService>();
-    
-    context.Database.EnsureCreated();
-    
-    // Seed admin user if no users exist
-    if (!context.Users.Any())
+    try
     {
-        var adminUser = new SimpleReact.API.Models.User
-        {
-            Username = "admin",
-            Email = "admin@example.com",
-            FirstName = "Admin",
-            LastName = "User",
-            IsActive = true,
-            Roles = new List<string> { "Admin" }
-        };
+        var services = scope.ServiceProvider;
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        var userRepository = services.GetRequiredService<IUserRepository>();
+        var authService = services.GetRequiredService<AuthService>();
         
-        authService.RegisterUserAsync(adminUser, "Admin123!").Wait();
-        Console.WriteLine("Admin user seeded successfully.");
+        // Ensure database is created with schema
+        Console.WriteLine("Ensuring database is created...");
+        context.Database.EnsureDeleted(); // Delete existing database to ensure clean state
+        context.Database.EnsureCreated();
+        Console.WriteLine("Database created successfully.");
+        
+        // Verify database connection and schema
+        try
+        {
+            var userCount = context.Users.Count();
+            Console.WriteLine($"Found {userCount} users in the database.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error verifying database schema: {ex.Message}");
+            throw;
+        }
+        
+        // Seed admin user if no users exist
+        if (!context.Users.Any())
+        {
+            Console.WriteLine("No users found. Seeding admin user...");
+            var adminUser = new SimpleReact.API.Models.User
+            {
+                Username = "admin",
+                Email = "admin@example.com",
+                FirstName = "Admin",
+                LastName = "User",
+                IsActive = true,
+                Roles = new List<string> { "Admin" }
+            };
+            
+            var result = authService.RegisterUserAsync(adminUser, "Admin123!").Result;
+            if (result != null)
+            {
+                Console.WriteLine("Admin user seeded successfully.");
+            }
+            else
+            {
+                Console.WriteLine("Failed to seed admin user.");
+            }
+        }
+        else
+        {
+            Console.WriteLine("Admin user already exists.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error initializing database: {ex.Message}");
+        Console.WriteLine(ex.StackTrace);
+        throw;
     }
 }
 
