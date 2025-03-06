@@ -48,6 +48,8 @@ builder.Services.AddCors(options =>
         policy.AllowAnyOrigin()
               .AllowAnyHeader()
               .AllowAnyMethod();
+        
+        Console.WriteLine("CORS policy configured to allow any origin, header, and method");
     });
 });
 
