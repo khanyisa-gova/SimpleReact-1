@@ -1,0 +1,6 @@
+@SimpleReact.API_HostAddress = http://localhost:5178
+
+GET {{SimpleReact.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
