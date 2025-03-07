@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using SimpleReact.API.Models;
 using SimpleReact.API.Repositories;
+using Microsoft.Extensions.Logging;
 
 namespace SimpleReact.API.Services
 {
@@ -15,51 +16,75 @@ namespace SimpleReact.API.Services
     {
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
+        private readonly ILogger<AuthService> _logger;
 
-        public AuthService(IUserRepository userRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IConfiguration configuration, ILogger<AuthService> logger)
         {
             _userRepository = userRepository;
             _configuration = configuration;
+            _logger = logger;
         }
 
         public async Task<User> RegisterUserAsync(User user, string password)
         {
-            // Check if user already exists
-            var existingUser = await _userRepository.GetUserByUsernameAsync(user.Username);
-            if (existingUser != null)
-                return null;
-            
-            existingUser = await _userRepository.GetUserByEmailAsync(user.Email);
-            if (existingUser != null)
-                return null;
-            
-            // Hash password
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
-            
-            // Check if this is the first user (to assign Admin role)
-            var allUsers = await _userRepository.GetAllUsersAsync();
-            bool isFirstUser = allUsers.Count() == 0;
-            
-            // Set default role if none provided
-            if (user.Roles == null || user.Roles.Count == 0)
+            try
             {
-                user.Roles = isFirstUser 
-                    ? new List<string> { "Admin", "User" } 
-                    : new List<string> { "User" };
+                // Check if user already exists
+                var existingUser = await _userRepository.GetUserByUsernameAsync(user.Username);
+                if (existingUser != null)
+                {
+                    _logger.LogWarning("Registration failed: User with username {Username} already exists.", user.Username);
+                    return null;
+                }
+                
+                existingUser = await _userRepository.GetUserByEmailAsync(user.Email);
+                if (existingUser != null)
+                {
+                    _logger.LogWarning("Registration failed: User with email {Email} already exists.", user.Email);
+                    return null;
+                }
+                
+                // Hash password
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                
+                // Check if this is the first user (to assign Admin role)
+                var allUsers = await _userRepository.GetAllUsersAsync();
+                bool isFirstUser = allUsers.Count() == 0;
+                
+                // Set default role if none provided
+                if (user.Roles == null || user.Roles.Count == 0)
+                {
+                    user.Roles = isFirstUser 
+                        ? new List<string> { "Admin", "User" } 
+                        : new List<string> { "User" };
+                }
+                
+                // Create user
+                return await _userRepository.CreateUserAsync(user);
             }
-            
-            // Create user
-            return await _userRepository.CreateUserAsync(user);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred during registration for user {Username}", user.Username);
+                return null;
+            }
         }
 
         public async Task<string> LoginAsync(string username, string password)
         {
-            var user = await _userRepository.GetUserByUsernameAsync(username);
-            
-            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+            try
+            {
+                var user = await _userRepository.GetUserByUsernameAsync(username);
+                
+                if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                    return null;
+                
+                return GenerateJwtToken(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "An error occurred during login for user {Username}", username);
                 return null;
-            
-            return GenerateJwtToken(user);
+            }
         }
 
         private string GenerateJwtToken(User user)
