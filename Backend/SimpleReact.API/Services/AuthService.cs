@@ -71,18 +71,20 @@ namespace SimpleReact.API.Services
 
         public async Task<string> LoginAsync(string username, string password)
         {
-            try
+            Console.WriteLine($"Login attempt for user: {username}");
+            
+            var user = await _userRepository.GetUserByUsernameAsync(username);
+            
+            if (user == null)
             {
-                var user = await _userRepository.GetUserByUsernameAsync(username);
-                
-                if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                    return null;
-                
-                return GenerateJwtToken(user);
+                Console.WriteLine($"User not found: {username}");
+                return null;
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "An error occurred during login for user {Username}", username);
+            
+            bool passwordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            Console.WriteLine($"Password validation result: {passwordValid}");
+            
+            if (!passwordValid)
                 return null;
             }
         }

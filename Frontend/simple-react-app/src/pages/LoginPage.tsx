@@ -21,12 +21,16 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
+      console.log('Attempting login with:', { username });
       const response = await authApi.login(username, password);
+      console.log('Login response:', response);
       setToken(response.data.token);
       navigate('/');
     } catch (err: any) {
+      console.error('Login error:', err);
       setError(
         err.response?.data || 
+        err.message ||
         'An error occurred during login. Please try again.'
       );
     } finally {
