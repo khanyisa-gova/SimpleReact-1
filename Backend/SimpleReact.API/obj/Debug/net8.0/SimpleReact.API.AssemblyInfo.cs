@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SimpleReact.API")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6b5f597ed74b5699ad482c0b5be3f2831d40127")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+32bfb145eeb858ebc9add97420ef6ea6afb3702a")]
 [assembly: System.Reflection.AssemblyProductAttribute("SimpleReact.API")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SimpleReact.API")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
